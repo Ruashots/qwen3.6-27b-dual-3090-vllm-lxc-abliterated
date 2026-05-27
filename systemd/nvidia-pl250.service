@@ -1,0 +1,13 @@
+[Unit]
+Description=NVIDIA GPU power limit (250W per card) — silent 24/7 inference cap for dual RTX 3090
+After=nvidia-persistenced.service
+Requires=nvidia-persistenced.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nvidia-smi -i 0 -pl 250
+ExecStart=/usr/bin/nvidia-smi -i 1 -pl 250
+
+[Install]
+WantedBy=multi-user.target

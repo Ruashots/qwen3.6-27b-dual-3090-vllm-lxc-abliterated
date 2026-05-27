@@ -1,0 +1,18 @@
+[Unit]
+Description=vLLM Qwen3.6-27B abliterated inference server (shawnw3i AWQ-MTP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vllm-serve
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=600
+TimeoutStopSec=60
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
