@@ -21,18 +21,28 @@ This is a case-airflow + cooler-design issue, not a chip issue. A different cool
 
 ---
 
-## 2. Pure INT4 vs BF16-INT4 hybrid: not measurably worse
+## 2. Both quants are mixed-precision (corrected after HF discussion)
 
-shawnw3i ships as **pure INT4** weights — no BF16 layers preserved for linear attention or sensitive paths. The base recipe's cyankiwi quant uses a hybrid (`AWQ-BF16-INT4`) that keeps BF16 on linear-attn for accuracy.
+**Original version of this entry was wrong.** We initially described shawnw3i as "pure INT4 weights" vs cyankiwi's "hybrid BF16-INT4." After publishing, shawnw3i (the model author) clarified on HuggingFace that their quant is **also mixed-precision**: `config.json` lists 101 entries in `modules_to_not_convert`, keeping most linear_attn layers (48/63), `lm_head`, the vision encoder, and the MTP heads in float16.
 
-In theory: BF16 hybrid = better quality. In practice we couldn't measure a difference on:
+So the actual structure is two similar-in-spirit mixed-precision AWQ schemes with different preserved-layer choices:
+
+| | shawnw3i | cyankiwi |
+|---|---|---|
+| Preservation scope | Most linear_attn + lm_head + vision encoder + MTP heads in fp16 | BF16 on linear-attn layers |
+| Net size on disk | ~19 GB | ~28 GB |
+| Difference is mostly | which non-attention modules get downcast | the BF16 dtype choice for attention paths |
+
+This makes the quality parity we observed (deterministic math/code/reasoning A/B + 5000-word long-form generation + vision) unsurprising rather than counterintuitive. We expected a pure-INT4 quant to lag a hybrid; instead, both are hybrids with different recipes, and they perform comparably on day-to-day workloads.
+
+The original observations still hold:
 - Math reasoning (both gave identical wrong answers at identical step — same model, same mistake)
 - Code generation
 - Factual recall
 - Long-context coherence (4/4 needles at 41K tokens)
 - Vision accuracy
 
-The hybrid scheme might pay off on harder reasoning benchmarks (MMLU, GSM8K) where we'd see a fractional perplexity gap. For day-to-day agentic use it doesn't show up. If you have a real production workload that's sensitive to the gap, run the same A/B before committing.
+If you have a production workload sensitive to the gap, run the same A/B before committing — but don't expect the "pure INT4" alarm bells the first version of this gotcha implied.
 
 ---
 

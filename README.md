@@ -26,7 +26,7 @@ Other measured:
 
 | | shawnw3i (this recipe) | [cyankiwi base-model recipe](https://github.com/Ruashots/qwen3.6-27b-dual-3090-vllm-lxc) |
 |---|---|---|
-| Format | AWQ pure INT4 | AWQ-BF16-INT4 hybrid (BF16 on linear-attn layers) |
+| Format | AWQ mixed-precision (most layers INT4; linear-attn 48/63 + lm_head + vision encoder + MTP heads kept in float16) | AWQ-BF16-INT4 hybrid (BF16 on linear-attn layers) |
 | Size on disk | ~19 GB | ~28 GB |
 | MTP n | 3 | 2 |
 | c=1 single-stream | **149 t/s** (peak) | 101 t/s (peak) |
@@ -34,7 +34,7 @@ Other measured:
 | KV pool | 591K tokens | 375K tokens |
 | Abliterated | ✅ (huihui via Sumandora method) | ❌ base |
 
-The smaller checkpoint means less memory bandwidth per token and more VRAM left for KV cache. The hybrid BF16 layers cyankiwi preserves for accuracy don't appear to make a measurable quality difference on the tests we ran (deterministic math/code/reasoning A/B + 5000-word long-form generation + vision). See [GOTCHAS.md](GOTCHAS.md) for the quality-comparison details.
+The smaller checkpoint means less memory bandwidth per token and more VRAM left for KV cache. **Both quants are mixed-precision** — shawnw3i corrected us on this after a friendly HF discussion: their `config.json` lists 101 entries in `modules_to_not_convert`, keeping most linear_attn layers (48/63), `lm_head`, the vision encoder, and MTP heads in float16, while cyankiwi's recipe preserves BF16 specifically on linear-attn. So the quant-quality picture is "two similar-in-spirit mixed-precision schemes with different preserved-layer choices," not "pure INT4 vs hybrid." This now makes the observed quality parity unsurprising rather than counterintuitive. See [GOTCHAS.md](GOTCHAS.md) for details.
 
 ## Hardware and software tested
 
